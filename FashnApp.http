@@ -1,0 +1,6 @@
+@FashnApp_HostAddress = http://localhost:5082
+
+GET {{FashnApp_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

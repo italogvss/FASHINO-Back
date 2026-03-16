@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "fashino.api": "StartDebugging",
+        "fashino.db": "StartWithoutDebugging",
+        "fashino.pgadmin": "StartWithoutDebugging",
+        "fashino.worker": "StartDebugging"
+      }
+    }
+  }
+}

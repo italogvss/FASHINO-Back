@@ -1,0 +1,96 @@
+version: '3.9'
+services:
+
+
+  fashino.db:
+    image: postgres:16
+    container_name: fashinodb
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fashino
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.containers/fashinodb:/var/lib/postgresql/data
+    networks:
+      - fashino-network
+
+
+  fashino.api:
+    build:
+      context: .
+      dockerfile: Api/Dockerfile
+    container_name: fashino_api
+    ports:
+      - "5000:8080"
+      - "5001:8081"
+    environment:
+      ConnectionStrings__Postgres: "Host=fashino.db;Port=5432;Database=fashino;Username=postgres;Password=postgres"
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on:
+      - fashino.db
+      - minio
+    networks:
+      - fashino-network
+
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console web
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+      MINIO_DOMAIN: minio.local
+    command: server /data --console-address ":9001"
+    volumes:
+    - ./minio-data:/data
+    depends_on:
+      - fashino.db
+    networks:
+     - fashino-network
+
+  fashino.pgadmin:
+    image: dpage/pgadmin4
+    container_name: fashino_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8082:80"
+    depends_on:
+      - fashino.db
+    networks:
+      - fashino-network
+
+  fashino.worker:
+    build:
+      context: .
+      dockerfile: Worker/Dockerfile
+    container_name: fashino_worker
+    ports:
+    - "5005:5005"
+    environment:
+      ConnectionStrings__Postgres: "Host=fashino.db;Port=5432;Database=fashino;Username=postgres;Password=postgres"
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "0"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "admin123"
+
+    depends_on:
+      - fashino.api
+      - fashino.db
+      - minio
+    networks:
+      - fashino-network
+  
+
+networks:
+  fashino-network:
+    driver: bridge
